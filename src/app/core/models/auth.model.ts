@@ -1,35 +1,48 @@
 /**
- * Modelos de autenticacion.
- * Esta es la forma que debe tener lo que mande y devuelva el back.
+ * Modelos de autenticación.
+ * Estructuras alineadas con las respuestas y DTOs del backend en NestJS.
  */
 
 export type Rol = 'usuario' | 'mecanico';
+export type RolBackend = 'mecanico' | 'cliente';
 
 /** Lo que se manda a POST /auth/login */
 export interface Credenciales {
   correo: string;
-  contrasena: string;
+  password: string; // En NestJS el campo se llama 'password'
 }
 
 /**
  * Lo que se manda a POST /auth/registro.
- * Los dos roles piden exactamente los mismos datos. Lo que distingue a un
- * mecanico (descripcion, ubicacion, especialidades, precio) se llena
- * despues, desde su perfil en el dashboard.
  */
-export interface DatosRegistro {
+export interface RegistroRequest {
   nombre: string;
   correo: string;
   telefono: string;
-  contrasena: string;
-  rol: Rol;
+  password: string; // En NestJS el campo se llama 'password'
+  role: RolBackend; // En NestJS el campo se llama 'role' y usa mayúsculas
 }
 
-/** Lo que el back debe devolver al iniciar sesion o registrarse */
-export interface SesionUsuario {
-  token: string;
+/** Firma de los tokens devueltos por NestJS */
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+/** Entidad de usuario devuelta por el backend */
+export interface UsuarioBackend {
   id: string;
   nombre: string;
   correo: string;
-  rol: Rol;
+  telefono: string;
+  role: RolBackend;
+  activo: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Lo que el backend devuelve al iniciar sesión o registrarse */
+export interface SesionUsuario {
+  user: UsuarioBackend;
+  tokens: AuthTokens;
 }

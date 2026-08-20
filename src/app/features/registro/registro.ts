@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { Rol, SesionUsuario } from '../../core/models/auth.model';
+import { Rol, SesionUsuario, RegistroRequest } from '../../core/models/auth.model';
 import { AuthService } from '../../core/services/auth.service';
 import {
   PATRON_CONTRASENA,
@@ -54,8 +54,10 @@ export class Registro {
   }
 
   protected get noCoinciden(): boolean {
-    return this.formulario.hasError('noCoinciden') &&
-      this.formulario.controls.confirmarContrasena.touched;
+    return (
+      this.formulario.hasError('noCoinciden') &&
+      this.formulario.controls.confirmarContrasena.touched
+    );
   }
 
   protected seleccionarRol(rol: Rol): void {
@@ -77,23 +79,24 @@ export class Registro {
     this.enviando.set(true);
     const datos = this.formulario.getRawValue();
 
-    this.auth
-      .registrar({
-        nombre: datos.nombre.trim(),
-        correo: datos.correo.trim().toLowerCase(),
-        telefono: datos.telefono,
-        contrasena: datos.contrasena,
-        rol: datos.rol,
-      })
-      .subscribe({
-        next: (sesion) => {
-          this.enviando.set(false);
-          this.sesion.set(sesion);
-        },
-        error: (error: Error) => {
-          this.enviando.set(false);
-          this.errorServidor.set(error.message);
-        },
-      });
+    // Mapeo adaptado al DTO de NestJS (RegisterDto)
+    const payload: RegistroRequest = {
+      nombre: datos.nombre.trim(),
+      correo: datos.correo.trim().toLowerCase(),
+      telefono: datos.telefono,
+      password: datos.contrasena,
+      role: datos.rol === 'mecanico' ? 'mecanico' : 'cliente',
+    };
+
+    this.auth.registrar(payload).subscribe({
+      next: (sesion) => {
+        this.enviando.set(false);
+        this.sesion.set(sesion);
+      },
+      error: (error: Error) => {
+        this.enviando.set(false);
+        this.errorServidor.set(error.message);
+      },
+    });
   }
 }

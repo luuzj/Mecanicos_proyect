@@ -50,7 +50,10 @@ export class Login {
     const datos = this.formulario.getRawValue();
 
     this.auth
-      .iniciarSesion({ correo: datos.correo.trim().toLowerCase(), contrasena: datos.contrasena })
+      .iniciarSesion({
+        correo: datos.correo.trim().toLowerCase(),
+        password: datos.contrasena, // Mapeo a 'password' para NestJS
+      })
       .subscribe({
         next: (sesion) => {
           this.enviando.set(false);

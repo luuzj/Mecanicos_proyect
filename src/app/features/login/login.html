@@ -6,12 +6,12 @@
       <p class="auth-subtitulo">Encuentra tu solución mecánica</p>
     </div>
 
-    @if (sesion(); as usuario) {
+    @if (sesion(); as respuesta) {
       <!-- Ya inició sesión -->
       <div class="auth-aviso auth-aviso--exito">
         <span>
-          Bienvenido, <strong>{{ usuario.nombre }}</strong>. Entraste como
-          <strong>{{ usuario.rol }}</strong>.
+          Bienvenido, <strong>{{ respuesta.user.nombre }}</strong>. Entraste como
+          <strong>{{ respuesta.user.role }}</strong>.
         </span>
       </div>
 

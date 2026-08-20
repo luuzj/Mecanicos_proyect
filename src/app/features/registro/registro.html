@@ -6,12 +6,12 @@
       <p class="auth-subtitulo">Crea tu cuenta</p>
     </div>
 
-    @if (sesion(); as usuario) {
+    @if (sesion(); as respuesta) {
       <div class="auth-aviso auth-aviso--exito">
         <span>
-          Listo, <strong>{{ usuario.nombre }}</strong>. Tu cuenta de
-          <strong>{{ usuario.rol }}</strong> quedó creada con el correo
-          {{ usuario.correo }}.
+          Listo, <strong>{{ respuesta.user.nombre }}</strong>. Tu cuenta de
+          <strong>{{ respuesta.user.role }}</strong> quedó creada con el correo
+          {{ respuesta.user.correo }}.
         </span>
       </div>
 
