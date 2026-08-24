@@ -11,7 +11,6 @@ import { SoloNumeros } from '../../../shared/directivas/solo-numeros';
 import { PATRON_TELEFONO } from '../../../core/validadores/validadores';
 import { Coordenadas, MapaUbicacion } from '../../../shared/mapa-ubicacion/mapa-ubicacion';
 
-/** Centro de Oaxaca. Solo sirve para que el mapa arranque en algun lado. */
 const OAXACA_LAT = 17.0654;
 const OAXACA_LNG = -96.7237;
 
@@ -34,27 +33,16 @@ export class Perfil implements OnInit {
   protected readonly avisoUbicacion = signal<string | null>(null);
   protected readonly errorServidor = signal<string | null>(null);
 
-  /**
-   * La ubicacion vive en señales, no en el formulario.
-   *
-   * Es a proposito: el mapa avisa desde fuera de Angular, y con señales la
-   * pantalla se entera sola. Si estuviera en el formulario habria que
-   * refrescar la vista a mano cada vez que se arrastra el pin.
-   */
   protected readonly latitud = signal(0);
   protected readonly longitud = signal(0);
 
   protected readonly formulario = this.fb.nonNullable.group({
-    descripcion: ['', [Validators.required, Validators.maxLength(200)]],
+    nombreTaller: ['', [Validators.required, Validators.maxLength(150)]],
+    descripcion: ['', [Validators.maxLength(200)]],
     zonaTrabajo: ['', [Validators.required, Validators.minLength(4)]],
+    direccion: ['', [Validators.required, Validators.maxLength(255)]],
   });
 
-  /**
-   * Los datos de la cuenta van en su propio formulario, aparte del perfil
-   * de trabajo. Son cosas distintas: el telefono es del usuario y lo tienen
-   * las dos clases (cliente y mecanico); la descripcion y la zona solo las
-   * tiene el mecanico. Ademas se guardan en endpoints distintos.
-   */
   protected readonly formularioDatos = this.fb.nonNullable.group({
     telefono: ['', [Validators.required, Validators.pattern(PATRON_TELEFONO)]],
   });
@@ -69,7 +57,6 @@ export class Perfil implements OnInit {
     () => this.latitud() !== 0 && this.longitud() !== 0
   );
 
-  /** Donde se para el mapa. Sin ubicacion propia, arranca en el centro de Oaxaca. */
   protected readonly centroLat = computed(() =>
     this.tieneUbicacion() ? this.latitud() : OAXACA_LAT
   );
@@ -91,11 +78,13 @@ export class Perfil implements OnInit {
       next: (perfil) => {
         if (perfil) {
           this.formulario.patchValue({
-            descripcion: perfil.descripcion,
-            zonaTrabajo: perfil.zonaTrabajo,
+            nombreTaller: perfil.nombreTaller ?? '',
+            descripcion: perfil.descripcion ?? '',
+            zonaTrabajo: perfil.zonaTrabajo ?? '',
+            direccion: perfil.direccion ?? '',
           });
-          this.latitud.set(perfil.latitud);
-          this.longitud.set(perfil.longitud);
+          this.latitud.set(perfil.latitud ?? 0);
+          this.longitud.set(perfil.longitud ?? 0);
         }
         this.cargando.set(false);
       },
@@ -107,19 +96,19 @@ export class Perfil implements OnInit {
     return 200 - this.formulario.controls.descripcion.value.length;
   }
 
-  protected mostrarError(campo: 'descripcion' | 'zonaTrabajo'): boolean {
+  protected mostrarError(
+    campo: keyof typeof this.formulario.controls
+  ): boolean {
     const control = this.formulario.controls[campo];
-    return control.invalid && control.touched;
+    return control ? control.invalid && control.touched : false;
   }
 
-  /** Llega desde el mapa cuando se arrastra el pin o se toca el mapa */
   protected moverPin(coordenadas: Coordenadas): void {
     this.latitud.set(coordenadas.latitud);
     this.longitud.set(coordenadas.longitud);
     this.avisoUbicacion.set(null);
   }
 
-  /** Toma la ubicacion del GPS del navegador y mueve el pin ahi */
   protected usarMiUbicacion(): void {
     this.avisoUbicacion.set(null);
 
@@ -161,24 +150,35 @@ export class Perfil implements OnInit {
 
     this.guardando.set(true);
     const datos = this.formulario.getRawValue();
+    const existePerfil = !!this.mecanicoService.perfil();
 
-    this.mecanicoService
-      .guardarPerfil({
-        descripcion: datos.descripcion.trim(),
-        zonaTrabajo: datos.zonaTrabajo.trim(),
-        latitud: this.latitud(),
-        longitud: this.longitud(),
-      })
-      .subscribe({
-        next: () => {
-          this.guardando.set(false);
-          void this.router.navigate(['/mecanico']);
-        },
-        error: () => {
-          this.guardando.set(false);
-          this.errorServidor.set('No pudimos guardar tu perfil. Intenta de nuevo.');
-        },
-      });
+    const payload = {
+      nombreTaller: datos.nombreTaller.trim(),
+      descripcion: datos.descripcion.trim(),
+      zonaTrabajo: datos.zonaTrabajo.trim(),
+      direccion: datos.direccion.trim(),
+      telefono: this.formularioDatos.controls.telefono.value.trim(),
+      latitud: this.latitud(),
+      longitud: this.longitud(),
+    };
+
+    const peticion$ = existePerfil
+      ? this.mecanicoService.actualizarPerfil(payload)
+      : this.mecanicoService.crearPerfil(payload);
+
+    peticion$.subscribe({
+      next: () => {
+        this.guardando.set(false);
+        this.router.navigate(['/mecanico']).catch((err) => {
+          console.error('Error al redirigir tras guardar:', err);
+        });
+      },
+      error: (err) => {
+        console.error('Error al guardar perfil:', err);
+        this.guardando.set(false);
+        this.errorServidor.set('No pudimos guardar tu perfil. Intenta de nuevo.');
+      },
+    });
   }
 
   protected mostrarErrorTelefono(): boolean {
@@ -205,16 +205,13 @@ export class Perfil implements OnInit {
           this.datosGuardados.set(true);
           this.formularioDatos.markAsPristine();
         },
-        error: () => {
+        error: (err) => {
+          console.error('Error al actualizar teléfono:', err);
           this.guardandoDatos.set(false);
           this.errorServidor.set('No pudimos guardar tu teléfono. Intenta de nuevo.');
         },
       });
   }
-
-  // -----------------------------------------------------------------
-  // Eliminar cuenta
-  // -----------------------------------------------------------------
 
   protected readonly confirmando = signal(false);
   protected readonly eliminando = signal(false);
@@ -228,24 +225,18 @@ export class Perfil implements OnInit {
   }
 
   protected eliminarCuenta(): void {
-    if (this.eliminando()) {
-      return;
-    }
+    if (this.eliminando()) return;
 
     this.eliminando.set(true);
 
-    // Se guarda antes: al eliminar la cuenta la sesion se cierra y despues
-    // ya no habria de donde sacar el id.
-    const usuarioId = this.sesion.usuario()?.id;
-
     this.auth.eliminarCuenta().subscribe({
       next: () => {
-        if (usuarioId) {
-          this.mecanicoService.olvidarPerfil(usuarioId);
-        }
-        void this.router.navigate(['/']);
+        this.router.navigate(['/']).catch((err) => {
+          console.error('Error al redirigir tras eliminar:', err);
+        });
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error al eliminar cuenta:', err);
         this.eliminando.set(false);
         this.confirmando.set(false);
         this.errorServidor.set('No pudimos eliminar la cuenta. Intenta de nuevo.');

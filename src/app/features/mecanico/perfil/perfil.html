@@ -13,7 +13,7 @@
       </div>
     }
 
-    <!-- Datos de la cuenta. Van aparte porque se guardan en otro lado. -->
+    <!-- Datos de la cuenta -->
     <section class="bloque">
       <h2 class="bloque__titulo">Tus datos</h2>
 
@@ -72,14 +72,29 @@
       Estos datos son los que van a ver los clientes cuando te encuentren.
     </p>
 
+    <!-- Datos del servicio / taller -->
     <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+      <div class="campo">
+        <label for="nombreTaller">Nombre de tu taller o servicio</label>
+        <input
+          id="nombreTaller"
+          type="text"
+          formControlName="nombreTaller"
+          maxlength="150"
+          placeholder="Ej. Taller Mecánico San José o Mecánico A Domicilio"
+        />
+        @if (mostrarError('nombreTaller')) {
+          <p class="campo__error">El nombre del taller es obligatorio</p>
+        }
+      </div>
+
       <div class="campo">
         <label for="descripcion">¿Qué haces y en qué eres bueno?</label>
         <textarea
           id="descripcion"
           formControlName="descripcion"
           maxlength="200"
-          placeholder="Ej. Taller propio en Reforma. Especialista en motor y afinación. Servicio a domicilio."
+          placeholder="Ej. Especialista en motor y afinación. Servicio a domicilio."
         ></textarea>
         @if (mostrarError('descripcion')) {
           <p class="campo__error">Escribe una descripción (máximo 200 caracteres)</p>
@@ -98,6 +113,20 @@
         />
         @if (mostrarError('zonaTrabajo')) {
           <p class="campo__error">Escribe la colonia o zona donde das servicio</p>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="direccion">Dirección física / Referencia</label>
+        <input
+          id="direccion"
+          type="text"
+          formControlName="direccion"
+          maxlength="255"
+          placeholder="Ej. Av. Hidalgo #123, Col. Centro"
+        />
+        @if (mostrarError('direccion')) {
+          <p class="campo__error">Escribe tu dirección o una referencia de tu ubicación</p>
         }
       </div>
 
@@ -159,8 +188,7 @@
       </button>
     </form>
 
-    <!-- Eliminar cuenta. Va aparte y hasta abajo: no debe quedar
-         pegado al boton de guardar ni al de salir. -->
+    <!-- Eliminar cuenta -->
     <section class="zona-riesgo">
       <h2 class="zona-riesgo__titulo">Eliminar cuenta</h2>
 

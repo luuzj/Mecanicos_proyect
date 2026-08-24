@@ -56,8 +56,8 @@ export class Login {
       .subscribe({
         next: (respuesta) => {
           this.enviando.set(false);
-          // Cada quien a su pantalla, segun su rol
-          void this.router.navigate([this.sesion.rutaSegunRol(respuesta.user.role)]);
+          const ruta = this.sesion.rutaSegunRol(respuesta.user.role);
+          void this.router.navigate([ruta]);
         },
         error: (error: unknown) => {
           this.enviando.set(false);
@@ -66,20 +66,24 @@ export class Login {
       });
   }
 
-  /** Traduce el error del back a algo que el usuario entienda */
   private mensajeDeError(error: unknown): string {
     if (error instanceof Error) {
       return error.message;
     }
 
-    const http = error as { status?: number; error?: { message?: string } };
+    const http = error as { status?: number; error?: { message?: string | string[] } };
 
     if (http.status === 401) {
       return 'El correo o la contraseña no son correctos';
     }
     if (http.status === 0) {
-      return 'No pudimos conectar con el servidor. Revisa que esté encendido.';
+      return 'No pudimos conectar con el servidor. Revisa tu conexión.';
     }
-    return http.error?.message ?? 'Algo salió mal, intenta de nuevo';
+
+    const mensaje = http.error?.message;
+    if (Array.isArray(mensaje)) {
+      return mensaje[0];
+    }
+    return mensaje ?? 'Algo salió mal, intenta de nuevo';
   }
 }
